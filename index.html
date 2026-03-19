@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>PIBIShow - Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-hino: #1a2e2a; --bg-hino-gradient: #243d38; --text-hino: #ecede1;
+            --bg-bible: #f5f1e0; --bg-bible-gradient: #e8e4d0; --text-bible: #3c2f2f;
+        }
+        body {
+            background-color: var(--bg-hino) !important; color: var(--text-hino) !important;
+            margin: 0; height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden;
+            font-family: 'Inter', sans-serif; transition: all 0.5s ease;
+        }
+        body.tema-bible { background-color: var(--bg-bible) !important; color: var(--text-bible) !important; }
+
+        .container-letra {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            background: radial-gradient(circle at center, var(--bg-hino-gradient) 0%, var(--bg-hino) 100%);
+            padding: 2vh 6vw; overflow: hidden;
+            z-index: 10;
+        }
+        body.tema-bible .container-letra { background: radial-gradient(circle at center, var(--bg-bible-gradient) 0%, var(--bg-bible) 100%); }
+
+        #display-letra {
+            font-weight: 800; text-transform: uppercase; text-align: center;
+            display: inline-block; max-width: 95%;
+            text-shadow: 0px 8px 30px rgba(0,0,0,0.2); line-height: 1.1;
+            transition: opacity 0.4s ease-in-out; word-wrap: break-word;
+        }
+
+        /* Rodapé de Informações */
+        #footer-info {
+            position: absolute; bottom: 10px; left: 0; right: 0;
+            display: flex; justify-content: space-between; align-items: flex-end;
+            padding: 0 25px; opacity: 0.2; z-index: 50; pointer-events: none;
+        }
+        #txt-obra { font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        #txt-status { font-size: 9px; font-weight: 900; color: #4CAF50; }
+
+        /* Botão Fullscreen - Z-INDEX ALTÍSSIMO */
+        #btn-fullscreen {
+            position: fixed; top: 20px; right: 20px; z-index: 9999;
+            opacity: 0.3; background: rgba(0,0,0,0.2); border: 2px solid currentColor; border-radius: 50%;
+            cursor: pointer; padding: 12px; transition: all 0.3s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #btn-fullscreen:hover { opacity: 1; background: rgba(0,0,0,0.5); transform: scale(1.1); }
+        #btn-fullscreen svg { width: 24px; height: 24px; fill: currentColor; }
+
+        /* Estilo JESUS */
+        .idle-content {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            width: 100%;
+        }
+        .jesus-text {
+            font-weight: 900; letter-spacing: -0.05em;
+            color: #4ADE80 !important; filter: drop-shadow(0 0 20px rgba(74, 222, 128, 0.4));
+            line-height: 0.9;
+        }
+        .blinking-dot {
+            width: 22px; height: 22px; background-color: #4ADE80; border-radius: 50%;
+            margin-top: 30px; animation: blink 1.2s infinite;
+            box-shadow: 0 0 20px #4ADE80;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.2; transform: scale(0.7); }
+        }
+
+        .hide-cursor { cursor: none; }
+        ::-webkit-scrollbar { display: none; }
+
+        /* Fullscreen fake para iPhone */
+        .ios-fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body id="main-body">
+    <button id="btn-fullscreen" onclick="toggleFullScreen()">
+        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+    </button>
+
+    <div class="container-letra" id="parent-container">
+        <div id="display-letra">PIBIShow</div>
+    </div>
+
+    <div id="footer-info">
+        <div id="txt-obra">PIBIShow</div>
+        <div id="txt-status">LOCAL OFF</div>
+    </div>
+
+    <script>
+        const body = document.getElementById('main-body');
+        const areaLetra = document.getElementById('display-letra');
+        const container = document.getElementById('parent-container');
+        const txtObra = document.getElementById('txt-obra');
+        const txtStatus = document.getElementById('txt-status');
+
+        const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+        function toggleFullScreen() {
+            if (isIphone) {
+                document.body.classList.toggle('ios-fullscreen');
+                return;
+            }
+
+            if (!document.fullscreenElement) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    document.documentElement.webkitRequestFullscreen();
+                } else if (document.documentElement.msRequestFullscreen) {
+                    document.documentElement.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        let lastText = "";
+
+        function atualizarUI(data) {
+            if (!data) return;
+
+            // Modo JESUS (IDLE)
+            if (data.tipo === "IDLE" || data.textoSlide === "IDLE" || data.hinoAtivo === "IDLE") {
+                txtObra.innerText = "SANTIDADE AO SENHOR";
+                body.classList.remove('tema-bible');
+                areaLetra.style.opacity = "0";
+
+                setTimeout(() => {
+                    areaLetra.innerHTML = `
+                        <div class="idle-content">
+                            <div class="jesus-text">JESUS</div>
+                            <div class="blinking-dot"></div>
+                        </div>`;
+                    ajustarFonte();
+                    areaLetra.style.opacity = "1";
+                }, 50);
+                return;
+            }
+
+            if (data.hinoAtivo) txtObra.innerText = data.hinoAtivo;
+            if (data.tipo === "BIBLE") body.classList.add('tema-bible');
+            else body.classList.remove('tema-bible');
+
+            if (data.textoSlide && data.textoSlide !== lastText) {
+                lastText = data.textoSlide;
+                areaLetra.style.opacity = "0";
+
+                setTimeout(() => {
+                    areaLetra.innerHTML = data.textoSlide.replace(/\n/g, '<br>');
+                    ajustarFonte();
+                    areaLetra.style.opacity = "1";
+                }, 50);
+            }
+        }
+
+        function ajustarFonte() {
+            const idleContent = document.querySelector('.idle-content');
+            const jesusText = document.querySelector('.jesus-text');
+
+            let isLandscape = window.innerWidth > window.innerHeight;
+
+            // Se for o modo JESUS, o tamanho base é maior
+            let fontSize = idleContent ? (isLandscape ? 28 : 18) : (isLandscape ? 14 : 6.5);
+
+            const target = jesusText || areaLetra;
+            target.style.fontSize = fontSize + "vh";
+
+            const maxH = container.clientHeight * 0.90;
+            const maxW = container.clientWidth * 0.90;
+
+            let count = 0;
+            // Ajusta até caber tanto na altura quanto na largura
+            while ((target.offsetHeight > maxH || target.offsetWidth > maxW) && fontSize > 2 && count < 100) {
+                fontSize -= 0.5;
+                target.style.fontSize = fontSize + "vh";
+                count++;
+            }
+        }
+
+        function conectarLocal() {
+            const socket = new WebSocket(`ws://${window.location.hostname}:9000/sync`);
+            socket.onopen = () => {
+                txtStatus.innerText = "LOCAL ON";
+                txtStatus.style.color = "#4ADE80";
+            };
+            socket.onmessage = (event) => {
+                atualizarUI(JSON.parse(event.data));
+            };
+            socket.onclose = () => {
+                txtStatus.innerText = "NUVEM";
+                txtStatus.style.color = "inherit";
+                setTimeout(conectarLocal, 3000);
+            };
+        }
+        conectarLocal();
+
+        window.onresize = () => {
+            areaLetra.style.opacity = "0";
+            setTimeout(() => {
+                ajustarFonte();
+                areaLetra.style.opacity = "1";
+            }, 400);
+        };
+
+        let mouseTimer;
+        document.addEventListener('mousemove', () => {
+            document.body.classList.remove('hide-cursor');
+            document.getElementById('btn-fullscreen').style.opacity = "0.3";
+            clearTimeout(mouseTimer);
+            mouseTimer = setTimeout(() => {
+                document.body.classList.add('hide-cursor');
+                document.getElementById('btn-fullscreen').style.opacity = "0";
+            }, 2000);
+        });
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        try {
+            const app = initializeApp({ databaseURL: "https://hinari-pibi-sync-default-rtdb.firebaseio.com" });
+            const db = getDatabase(app);
+            onValue(ref(db, 'sessao_louvor'), (snapshot) => {
+                if (txtStatus.innerText !== "LOCAL ON") {
+                    atualizarUI(snapshot.val());
+                }
+            });
+        } catch (e) {}
+    </script>
+</body>
+</html>
