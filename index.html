@@ -8,30 +8,28 @@
     <title>PIBIShow - Monitor Online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { margin: 0; height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden; font-family: 'Inter', sans-serif; transition: background-color 0.5s ease; background-color: #1a2e2a; color: #ecede1; }
+        body { margin: 0; height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden; font-family: 'Inter', sans-serif; transition: background-color 0.5s ease; background-color: #000; color: #fff; }
         .container-letra { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2vh 6vw; overflow: hidden; z-index: 10; position: relative; }
-
-        #display-letra {
-            font-weight: 800; text-transform: uppercase; text-align: center; display: inline-block;
-            max-width: 95%; text-shadow: 0px 8px 30px rgba(0,0,0,0.2); line-height: 1.2;
-            transition: opacity 0.4s ease-in-out; word-wrap: break-word;
+        
+        #display-letra { 
+            font-weight: 800; text-transform: uppercase; text-align: center; display: inline-block; 
+            max-width: 90%; text-shadow: 0px 8px 30px rgba(0,0,0,0.2); line-height: 1.2; 
+            transition: opacity 0.4s ease-in-out; word-wrap: break-word; padding: 40px;
             white-space: pre-wrap; color: inherit !important;
         }
 
-        .with-border { border: 6px solid currentColor; border-radius: 40px; padding: 30px; }
+        .with-border { border: 6px solid currentColor; border-radius: 40px; }
         .glow { filter: drop-shadow(0 0 20px currentColor); }
-
+        
         .idle-symbol { position: absolute; transition: all 0.8s ease; opacity: 0.8; z-index: 5; pointer-events: none; color: inherit !important; }
-
         .pulse { animation: pulse-anim 2s infinite ease-in-out; }
         @keyframes pulse-anim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0; transform: scale(0.8); } }
-
         .float { animation: float-anim 3s infinite ease-in-out; }
         @keyframes float-anim { 0%, 100% { translate: 0 0; } 50% { translate: 0 -20px; } }
 
         #footer-info { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 25px; opacity: 0.2; z-index: 50; pointer-events: none; }
         #txt-obra { font-size: 11px; font-weight: bold; text-transform: uppercase; }
-        #txt-status { font-size: 9px; font-weight: 900; color: #4CAF50; }
+        #txt-status { font-size: 9px; font-weight: 900; color: #FF5252; }
 
         #btn-fullscreen {
             position: fixed; top: 20px; right: 20px; z-index: 9999;
@@ -45,176 +43,162 @@
     </style>
 </head>
 <body id="main-body">
-<button id="btn-fullscreen" onclick="toggleFullScreen()">
-    <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-</button>
-<div class="container-letra" id="parent-container">
-    <div id="display-letra">PIBIShow</div>
-    <div id="symbols-layer"></div>
-</div>
-<div id="footer-info"><div id="txt-obra">PIBIShow</div><div id="txt-status">NUVEM</div></div>
+    <button id="btn-fullscreen" onclick="toggleFullScreen()">
+        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+    </button>
+    <div class="container-letra" id="parent-container">
+        <div id="display-letra">Aguardando Sala...</div>
+        <div id="symbols-layer"></div>
+    </div>
+    <div id="footer-info"><div id="txt-obra">PIBIShow</div><div id="txt-status">DESCONECTADO</div></div>
 
-<script>
-    const body = document.getElementById('main-body');
-    const areaLetra = document.getElementById('display-letra');
-    const symbolsLayer = document.getElementById('symbols-layer');
-    const container = document.getElementById('parent-container');
-    const txtObra = document.getElementById('txt-obra');
-    const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    <script>
+        const body = document.getElementById('main-body');
+        const areaLetra = document.getElementById('display-letra');
+        const symbolsLayer = document.getElementById('symbols-layer');
+        const container = document.getElementById('parent-container');
+        const txtObra = document.getElementById('txt-obra');
+        const txtStatus = document.getElementById('txt-status');
 
-    function toggleFullScreen() {
-        if (isIphone) { document.body.classList.toggle('ios-fullscreen'); return; }
-        if (!document.fullscreenElement) {
-            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
-            else if (document.documentElement.webkitRequestFullscreen) document.documentElement.webkitRequestFullscreen();
-        } else { document.exitFullscreen(); }
-    }
+        const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-    function getChar(name) {
-        const map = {"Ponto":"●", "Estrela":"★", "Cruz":"†", "Coração":"❤"};
-        return map[name] || "";
-    }
+        function toggleFullScreen() {
+            if (isIphone) { document.body.classList.toggle('ios-fullscreen'); return; }
+            if (!document.fullscreenElement) {
+                if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+                else if (document.documentElement.webkitRequestFullscreen) document.documentElement.webkitRequestFullscreen();
+            } else { document.exitFullscreen(); }
+        }
 
-    function atualizarUI(data) {
-        if (!data) return;
-        if (data.bgColor) body.style.backgroundColor = data.bgColor;
-        if (data.textColor) { body.style.color = data.textColor; areaLetra.style.color = data.textColor; }
-        symbolsLayer.innerHTML = "";
+        function getChar(name) {
+            const map = {"Ponto":"●", "Estrela":"★", "Cruz":"†", "Coração":"❤"};
+            return map[name] || "";
+        }
 
-        if (data.tipo === "IDLE") {
-            areaLetra.dataset.isIdle = "true";
-            areaLetra.dataset.size = data.idleSize || "28";
-            txtObra.innerText = "SANTIDADE AO SENHOR";
-            const texto = data.idleText || "JESUS";
-            const shape = getChar(data.idleShape);
-            const count = parseInt(data.idleCount || "1");
-            const pos = data.idlePos || "Abaixo";
-            const symSize = data.idleSymbolSize || "8";
+        function atualizarUI(data) {
+            if (!data) return;
+            
+            // Aplica cores dinâmicas enviadas pelo Master
+            if (data.bgColor) body.style.backgroundColor = data.bgColor;
+            if (data.textColor) {
+                body.style.color = data.textColor;
+                areaLetra.style.color = data.textColor;
+            }
+            symbolsLayer.innerHTML = "";
 
-            areaLetra.style.opacity = "0";
-            setTimeout(() => {
-                areaLetra.innerText = texto;
-                if (data.idleGlow) areaLetra.classList.add('glow'); else areaLetra.classList.remove('glow');
-                if (data.idleBorder) areaLetra.classList.add('with-border'); else areaLetra.classList.remove('with-border');
+            if (data.tipo === "IDLE") {
+                areaLetra.dataset.isIdle = "true";
+                areaLetra.dataset.size = data.idleSize || "28";
+                txtObra.innerText = "SANTIDADE AO SENHOR";
+                const texto = data.idleText || "JESUS";
+                const shape = getChar(data.idleShape);
+                const count = parseInt(data.idleCount || "1");
+                const pos = data.idlePos || "Abaixo";
+                const symSize = data.idleSymbolSize || "8";
 
-                ajustarFonte(true);
+                areaLetra.style.opacity = "0";
+                setTimeout(() => {
+                    areaLetra.innerText = texto;
+                    if (data.idleGlow) areaLetra.classList.add('glow'); else areaLetra.classList.remove('glow');
+                    if (data.idleBorder) areaLetra.classList.add('with-border'); else areaLetra.classList.remove('with-border');
+                    
+                    ajustarFonte(true);
 
-                if (shape !== "") {
-                    for(let i=0; i<count; i++) {
-                        const s = document.createElement('span');
-                        s.className = "idle-symbol pulse" + (data.idleGlow ? " glow" : "");
-                        if (i > 0) s.classList.add("float");
-                        s.innerText = shape;
-                        s.style.fontSize = symSize + "vh";
-                        s.style.color = data.textColor;
-
-                        if (pos === "Abaixo") {
-                            s.style.position = "relative"; s.style.display = "block";
-                            s.style.textAlign = "center";
-                            s.style.marginTop = "20px";
-                            areaLetra.appendChild(s);
-                        } else if (pos === "Ao Redor") {
-                            let angle = (i / count) * Math.PI * 2;
-                            let rx = 42, ry = 38;
-                            s.style.left = `calc(50% + ${Math.cos(angle) * rx}vw)`;
-                            s.style.top = `calc(50% + ${Math.sin(angle) * ry}vh)`;
-                            s.style.transform = "translate(-50%, -50%)";
-                            symbolsLayer.appendChild(s);
-                        } else if (pos === "Nos Cantos") {
-                            const corners = [['10%','10%'],['90%','10%'],['10%','90%'],['90%','90%']][i%4];
-                            s.style.left = c[0]; s.style.top = c[1];
-                            s.style.transform = "translate(-50%, -50%)";
-                            symbolsLayer.appendChild(s);
-                        } else if (pos === "Formato Cruz") {
-                            let x=50, y=50; if(i%4==0) y=15; else if(i%4==1) y=85; else if(i%4==2) x=15; else if(i%4==3) x=85;
-                            s.style.left = x+"%"; s.style.top = y+"%";
-                            s.style.transform = "translate(-50%, -50%)";
-                            symbolsLayer.appendChild(s);
+                    if (shape !== "") {
+                        for(let i=0; i<count; i++) {
+                            const s = document.createElement('span');
+                            s.className = "idle-symbol pulse" + (data.idleGlow ? " glow" : "");
+                            if (i > 0) s.classList.add("float"); 
+                            
+                            s.innerText = shape;
+                            s.style.fontSize = symSize + "vh";
+                            s.style.color = data.textColor;
+                            
+                            if (pos === "Abaixo") {
+                                s.style.position = "relative"; s.style.display = "block";
+                                s.style.textAlign = "center";
+                                s.style.marginTop = "20px"; areaLetra.appendChild(s);
+                            } else if (pos === "Ao Redor") {
+                                let angle = (i / count) * Math.PI * 2;
+                                let rx = 42, ry = 38;
+                                s.style.left = `calc(50% + ${Math.cos(angle) * rx}vw)`;
+                                s.style.top = `calc(50% + ${Math.sin(angle) * ry}vh)`;
+                                s.style.transform = "translate(-50%, -50%)";
+                                symbolsLayer.appendChild(s);
+                            } else if (pos === "Nos Cantos") {
+                                const corners = [['10%', '10%'], ['90%', '10%'], ['10%', '90%'], ['90%', '90%']];
+                                let c_sel = corners[i % 4]; s.style.left = c_sel[0]; s.style.top = c_sel[1];
+                                s.style.transform = "translate(-50%, -50%)";
+                                symbolsLayer.appendChild(s);
+                            } else if (pos === "Formato Cruz") {
+                                let x = 50, y = 50;
+                                if (i%4===0) y=15; else if(i%4===1) y=85; else if(i%4===2) x=15; else if(i%4===3) x=85;
+                                s.style.left = x+"%"; s.style.top = y+"%";
+                                s.style.transform = "translate(-50%, -50%)";
+                                symbolsLayer.appendChild(s);
+                            }
                         }
                     }
-                }
-                areaLetra.style.opacity = "1";
-            }, 50);
-            return;
+                    areaLetra.style.opacity = "1";
+                }, 50);
+                return;
+            }
+
+            areaLetra.dataset.isIdle = "false";
+            areaLetra.classList.remove('glow', 'with-border');
+            if (data.hinoAtivo) txtObra.innerText = data.hinoAtivo;
+            if (data.textoSlide) {
+                areaLetra.style.opacity = "0";
+                setTimeout(() => {
+                    areaLetra.innerHTML = data.textoSlide.replace(/\n/g, '<br>');
+                    ajustarFonte(false);
+                    areaLetra.style.opacity = "1";
+                }, 50);
+            }
         }
 
-        areaLetra.dataset.isIdle = "false";
-        areaLetra.classList.remove('glow', 'with-border');
-        if (data.hinoAtivo) txtObra.innerText = data.hinoAtivo;
-        if (data.textoSlide) {
-            areaLetra.style.opacity = "0";
-            setTimeout(() => {
-                areaLetra.innerHTML = data.textoSlide.replace(/\n/g, '<br>');
-                ajustarFonte(false);
-                areaLetra.style.opacity = "1";
-            }, 50);
-        }
-    }
-
-    function ajustarFonte(isIdle) {
-        let isLandscape = window.innerWidth > window.innerHeight;
-
-        if (!isIdle) {
-            // Lógica estável para Músicas/Bíblia (Original)
-            let fontSize = isLandscape ? 14 : 6.5;
+        function ajustarFonte(isIdle) {
+            let isLandscape = window.innerWidth > window.innerHeight;
+            let fontSize = isIdle ? (parseFloat(areaLetra.dataset.size) || 28) : (isLandscape ? 14 : 6.5);
+            if (isIdle && !isLandscape) fontSize = Math.min(fontSize, 15);
+            
             areaLetra.style.fontSize = fontSize + "vh";
             const maxH = container.clientHeight * 0.85;
-            const maxW = container.clientWidth * 0.85;
+            const maxW = container.clientWidth * 0.90;
             let count = 0;
             while ((areaLetra.scrollHeight > maxH || areaLetra.offsetWidth > maxW) && fontSize > 2 && count < 100) {
-                fontSize -= 0.5;
-                areaLetra.style.fontSize = fontSize + "vh";
-                count++;
+                fontSize -= 0.5; areaLetra.style.fontSize = fontSize + "vh"; count++;
             }
-            return;
         }
 
-        // LÓGICA APENAS PARA TELA DE ESPERA: Adaptação rigorosa de largura
-        let fontSize = parseFloat(areaLetra.dataset.size) || 28;
-        areaLetra.style.fontSize = fontSize + "vh";
-        const maxH = container.clientHeight * 0.85;
-        const maxW = container.clientWidth * 0.88;
+        window.onresize = () => { areaLetra.style.opacity = "0"; setTimeout(() => { ajustarFonte(areaLetra.dataset.isIdle === "true"); areaLetra.style.opacity = "1"; }, 400); };
+    </script>
 
-        let count = 0;
-        const originalWS = areaLetra.style.whiteSpace;
-        while (count < 100 && fontSize > 1.5) {
-            // Medimos a largura real da frase sem quebra automática
-            areaLetra.style.whiteSpace = "nowrap";
-            const currentWidth = areaLetra.scrollWidth;
-            areaLetra.style.whiteSpace = originalWS; // Restaura para renderizar linhas se houver
-
-            const currentHeight = areaLetra.scrollHeight;
-
-            if (currentWidth > maxW || currentHeight > maxH) {
-                fontSize -= 0.5;
-                areaLetra.style.fontSize = fontSize + "vh";
+    <!-- Script do Firebase (Internet com Suporte Rígido a Salas) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const salaId = urlParams.get('sala');
+            
+            if (!salaId) {
+                document.getElementById('display-letra').innerText = "LINK INVÁLIDO: CÓDIGO DA SALA OBRIGATÓRIO.";
+                document.getElementById('txt-status').innerText = "SEM SALA";
             } else {
-                break;
+                const app = initializeApp({ databaseURL: "https://hinari-pibi-sync-default-rtdb.firebaseio.com" });
+                const db = getDatabase(app);
+                txtStatus.innerText = `CONECTADO: SALA ${salaId}`;
+                txtStatus.style.color = "#4ADE80";
+
+                onValue(ref(db, `salas/${salaId}`), (snapshot) => {
+                    atualizarUI(snapshot.val());
+                });
             }
-            count++;
+        } catch (e) {
+            txtStatus.innerText = "ERRO DE CONEXÃO";
         }
-    }
-
-    window.onresize = () => {
-        areaLetra.style.opacity = "0";
-        setTimeout(() => {
-            ajustarFonte(areaLetra.dataset.isIdle === "true");
-            areaLetra.style.opacity = "1";
-        }, 400);
-    };
-</script>
-
-<!-- Script do Firebase (Internet) -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-    try {
-        const app = initializeApp({ databaseURL: "https://hinari-pibi-sync-default-rtdb.firebaseio.com" });
-        const db = getDatabase(app);
-        onValue(ref(db, 'sessao_louvor'), (snapshot) => {
-            atualizarUI(snapshot.val());
-        });
-    } catch (e) {}
-</script>
+    </script>
 </body>
 </html>
